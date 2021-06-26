@@ -1,29 +1,75 @@
 import { Redis } from "ioredis";
 import { connectToRedis } from "./db/redis";
+import { Heartbeat } from "./heartbeat";
+import { v4 as uuidv4 } from "uuid";
+import { Channels } from "./channels";
+import io from "socket.io-client";
 
 export let redis: Redis;
+export let slaveId: string;
+export let ioClient: any;
+export let masterAddress: string;
+
+require("dotenv").config();
 
 const main = async () => {
   redis = await connectToRedis();
-  setInterval(() => {
-    const message = { foo: Math.random() };
-    // Publish to my-channel-1 or my-channel-2 randomly.
-    const channel = `new_slave`;
+  slaveId = uuidv4();
+  masterAddress = process.env.MASTER_ADDRESS!;
+  ioClient = io(masterAddress);
+  publishNewSlave();
+  onExitApplication();
 
-    // Message can be either a string or a buffer
-    redis.publish(channel, JSON.stringify(message));
-    console.log("Published %s to %s", message, channel);
-  }, 4000);
+  const heartbeat = new Heartbeat();
+  heartbeat.ping();
+};
 
-  setInterval(() => {
-    const message = { foo: Math.random() };
-    // Publish to my-channel-1 or my-channel-2 randomly.
-    const channel = `remove_slave`;
+const publishNewSlave = () => {
+  redis.publish(Channels.NEW_SLAVE, JSON.stringify({ id: slaveId }));
+};
 
-    // Message can be either a string or a buffer
-    redis.publish(channel, JSON.stringify(message));
-    console.log("Published %s to %s", message, channel);
-  }, 6000);
+const onExitApplication = () => {
+  //app is closing
+  process.on("exit", (code) => {
+    redis.publish(
+      Channels.REMOVE_SLAVE,
+      JSON.stringify({ id: slaveId, code: code })
+    );
+    redis.disconnect();
+  });
+
+  //ctrl+c
+  process.on("SIGINT", (code) => {
+    redis.publish(
+      Channels.REMOVE_SLAVE,
+      JSON.stringify({ id: slaveId, code: code })
+    );
+    redis.disconnect();
+  });
+
+  //kill pid
+  process.on("SIGUSR1", (code) => {
+    redis.publish(
+      Channels.REMOVE_SLAVE,
+      JSON.stringify({ id: slaveId, code: code })
+    );
+    redis.disconnect();
+  });
+  process.on("SIGUSR2", (code) => {
+    redis.publish(
+      Channels.REMOVE_SLAVE,
+      JSON.stringify({ id: slaveId, code: code })
+    );
+    redis.disconnect();
+  });
+
+  process.on("uncaughtException", (code) => {
+    redis.publish(
+      Channels.REMOVE_SLAVE,
+      JSON.stringify({ id: slaveId, code: code })
+    );
+    redis.disconnect();
+  });
 };
 
 main().catch((err) => console.error(err));

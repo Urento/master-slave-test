@@ -1,3 +1,4 @@
+import { Socket } from "socket.io";
 import { io } from "../";
 
 export class HeartbeatHandler {
@@ -11,8 +12,9 @@ export class HeartbeatHandler {
     this.alreadyPinged = new Map<string, Date>();
   }
 
-  public listen = () => {
-    io.on("pong", (msg) => {
+  public listen = (socket: Socket) => {
+    socket.on("pong", (msg) => {
+      console.log("pong");
       const id = JSON.parse(msg).id;
       if (id === null) return;
       this.updateLastPing(id);
@@ -48,12 +50,14 @@ export class HeartbeatHandler {
   private updateLastPing = async (id: string) => {
     if (this.exists(id)) this.heartbeatCache.delete(id);
     this.heartbeatCache.set(id, new Date());
+    console.log(this.heartbeatCache.get(id));
   };
 
   public isInactiveTooLong = async (id: string) => {
     return new Promise(async (resolve, _reject) => {
       const lastPing = await this.getLastPing(id);
       console.log(lastPing);
+      console.log(Date.now() - this.TEN_MINUTES);
       if (lastPing!.getDate() > Date.now() - this.TEN_MINUTES)
         return resolve(true);
       resolve(false);

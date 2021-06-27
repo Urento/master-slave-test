@@ -1,11 +1,12 @@
-import { redis } from "./";
-import { Channels } from "./channels";
+import { ioClient, slaveId } from "./";
 
 export class Heartbeat {
+  public idObj = { id: slaveId };
+
   public ping = () => {
-    setInterval(() => {
-      redis.publish(Channels.PING, JSON.stringify({ id: "123" }));
-      console.log("ping");
-    }, 2000);
+    ioClient.on("ping", () => {
+      console.log("Ping from master (" + new Date() + ")");
+      ioClient.emit("pong", JSON.stringify(this.idObj));
+    });
   };
 }

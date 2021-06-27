@@ -6,13 +6,15 @@ import { SlaveCache } from "./slave/cache/slave.cache";
 import { HeartbeatHandler } from "./slave/heartbeat.handler";
 import { SlaveHandler } from "./slave/slave.handler";
 import http from "http";
-import { Server } from "socket.io";
+import { Server, Socket } from "socket.io";
 import { DefaultEventsMap } from "socket.io/dist/typed-events";
+import { Loadbalancer } from "./loadbalancer/balancer.handler";
 
 export let redis: Redis;
+export let loadbalancer: Loadbalancer;
 export let slaveCache: SlaveCache;
 export let io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap>;
-export let server: any;
+export let server: http.Server;
 export let app: any;
 
 /**
@@ -28,11 +30,13 @@ const main = async () => {
   slaveCache = new SlaveCache();
   slaveCache.sync();
 
+  loadbalancer = new Loadbalancer();
+
   const slaveHandler = new SlaveHandler();
   slaveHandler.listen();
 
   const heartbeatHandler = new HeartbeatHandler();
-  heartbeatHandler.listen();
+  heartbeatHandler.start();
 
   redis.subscribe(
     Channels.NEW_SLAVE,
@@ -43,6 +47,12 @@ const main = async () => {
       console.log("Subscribed to " + c + " channels");
     }
   );
+
+  io.on("connect", (socket: Socket) => {
+    heartbeatHandler.listen(socket);
+    loadbalancer.ping(socket);
+    loadbalancer.listen(socket);
+  });
 
   /*redis.on("message", (channel: Channels, message) => {
     switch (channel) {
@@ -56,6 +66,8 @@ const main = async () => {
         break;
     }
   });*/
+
+  server.listen(8080);
 };
 
 main().catch((err) => console.error(err));

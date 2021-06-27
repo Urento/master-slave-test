@@ -3,11 +3,13 @@ import { connectToRedis } from "./db/redis";
 import { Heartbeat } from "./heartbeat";
 import { v4 as uuidv4 } from "uuid";
 import { Channels } from "./channels";
-import io from "socket.io-client";
+import io, { Socket } from "socket.io-client";
+import { DefaultEventsMap } from "socket.io-client/build/typed-events";
+import { LoadbalancerReceiver } from "./loadbalancer/loadbalancer";
 
 export let redis: Redis;
 export let slaveId: string;
-export let ioClient: any;
+export let ioClient: Socket<DefaultEventsMap, DefaultEventsMap>;
 export let masterAddress: string;
 
 require("dotenv").config();
@@ -16,12 +18,16 @@ const main = async () => {
   redis = await connectToRedis();
   slaveId = uuidv4();
   masterAddress = process.env.MASTER_ADDRESS!;
-  ioClient = io(masterAddress);
+  ioClient = io("http://localhost:8080");
+  console.log("Waiting for Socket to connect");
   publishNewSlave();
   onExitApplication();
 
   const heartbeat = new Heartbeat();
   heartbeat.ping();
+
+  const loadbalancerReciever = new LoadbalancerReceiver();
+  loadbalancerReciever.listen();
 };
 
 const publishNewSlave = () => {

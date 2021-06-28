@@ -1,4 +1,4 @@
-import { ioClient } from "../";
+import { ioClient, slaveId } from "../";
 import os from "os";
 import { __prod__ } from "../constants";
 
@@ -12,7 +12,7 @@ export class LoadbalancerReceiver {
 
       ioClient.emit(
         "data_loadbalancer",
-        JSON.stringify({ cpu: cpuUsage, ram: freeRam })
+        JSON.stringify({ id: slaveId, cpu: cpuUsage, ram: freeRam })
       );
     });
   };

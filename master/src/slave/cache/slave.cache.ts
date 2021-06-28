@@ -1,3 +1,4 @@
+import { redisNotSub } from "../../";
 import { Slave } from "../slave";
 
 export class SlaveCache {
@@ -8,32 +9,27 @@ export class SlaveCache {
   }
 
   //TODO
-  public sync() {
-    /**
-     * redis.keys('sample_pattern:*').then(function (keys) {
-  // Use pipeline instead of sending
-  // one command each time to improve the
-  // performance.
-  var pipeline = redis.pipeline();
-  keys.forEach(function (key) {
-    pipeline.del(key);
-  });
-  return pipeline.exec();
-});
-     */
-  }
+  public sync = async () => {
+    redisNotSub.keys("slave:*").then((keys) => {
+      var pipeline = redisNotSub.pipeline();
+      keys.forEach((key) => this.slaves.set(key, new Slave(key)));
+      return pipeline.exec();
+    });
+    console.log(this.slaves.entries());
+    console.log(`Synced ${this.slaves.size} to cache`);
+  };
 
-  public addSlave(id: string, slave: Slave) {
+  public addSlave = (id: string, slave: Slave) => {
     if (this.isCached(id)) return;
     this.slaves.set(id, slave);
-  }
+  };
 
-  public removeSlave(id: string) {
+  public removeSlave = (id: string) => {
     if (!this.isCached(id)) return;
     this.slaves.delete(id);
-  }
+  };
 
-  public isCached(id: string) {
+  public isCached = (id: string) => {
     return this.slaves.has(id);
-  }
+  };
 }

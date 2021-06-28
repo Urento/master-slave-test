@@ -28,10 +28,17 @@ const main = async () => {
 
   const loadbalancerReciever = new LoadbalancerReceiver();
   loadbalancerReciever.listen();
+
+  ioClient.on("new_job", (data: any) => {
+    console.log(JSON.parse(data));
+  });
 };
 
 const publishNewSlave = () => {
-  redis.publish(Channels.NEW_SLAVE, JSON.stringify({ id: slaveId }));
+  redis.publish(
+    Channels.NEW_SLAVE,
+    JSON.stringify({ id: slaveId, socketId: ioClient.id })
+  );
 };
 
 const onExitApplication = () => {

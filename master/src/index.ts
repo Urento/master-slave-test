@@ -62,6 +62,7 @@ const main = async () => {
         id: "b9f42330-2720-4540-89e2-117f19eef829",
         jobType: JobType.TEST,
         jobsInQueue: 1,
+        createdOn: new Date(),
       },
       socket
     );

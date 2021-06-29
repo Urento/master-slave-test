@@ -3,6 +3,7 @@ export type Job = {
   jobId?: string;
   jobsInQueue?: number;
   jobType: JobType;
+  createdOn: Date;
 };
 
 export enum JobType {

@@ -6,11 +6,13 @@ import { Channels } from "./channels";
 import io, { Socket } from "socket.io-client";
 import { DefaultEventsMap } from "socket.io-client/build/typed-events";
 import { LoadbalancerReceiver } from "./loadbalancer/loadbalancer";
+import { JobHandler } from "./job/job.handler";
 
 export let redis: Redis;
 export let slaveId: string;
 export let ioClient: Socket<DefaultEventsMap, DefaultEventsMap>;
 export let masterAddress: string;
+export let jobHandler: JobHandler;
 
 require("dotenv").config();
 
@@ -29,9 +31,9 @@ const main = async () => {
   const loadbalancerReciever = new LoadbalancerReceiver();
   loadbalancerReciever.listen();
 
-  ioClient.on("new_job", (data: any) => {
-    console.log(JSON.parse(data));
-  });
+  jobHandler = new JobHandler();
+  jobHandler.listen();
+  jobHandler.processQueue();
 };
 
 const publishNewSlave = () => {

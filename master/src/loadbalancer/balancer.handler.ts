@@ -102,7 +102,7 @@ export class Loadbalancer {
   };
 
   //@ts-ignore
-  private getRandomSlave = (): string | undefined => {
+  public getRandomSlave = (): string | undefined => {
     let index = Math.floor(Math.random() * this.slaves.size);
     let cntr = 0;
     for (let key of this.slaves.keys()) {
